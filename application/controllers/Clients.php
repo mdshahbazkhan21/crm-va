@@ -1728,4 +1728,35 @@ class Clients extends Clients_controller
     {
         return do_recaptcha_validation($str);
     }
+    public function json_projects($status = '')
+    {
+        if (!is_client_logged_in()) {
+            redirect(site_url('clients/login'));
+        }
+
+        if (!has_contact_permission('projects')) {
+            set_alert('warning', _l('access_denied'));
+            redirect(site_url());
+        }
+
+
+        $data['project_statuses'] = $this->projects_model->get_project_statuses();
+
+        $where = 'clientid='.get_client_user_id();
+
+        if (is_numeric($status)) {
+            $where .= ' AND status='.$status;
+        } else {
+            $where .= ' AND status IN (';
+            foreach ($data['project_statuses'] as $projectStatus) {
+                if (isset($projectStatus['filter_default']) && $projectStatus['filter_default'] == true) {
+                    $where .= $projectStatus['id'] . ',';
+                }
+            }
+            $where = rtrim($where, ',');
+            $where .= ')';
+        }
+        $data['projects']         = $this->projects_model->get('', $where);
+        echo json_encode($data['projects']);
+    }
 }
